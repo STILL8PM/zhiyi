@@ -112,11 +112,16 @@ export default {
   settings: {
     pageTitle: '设置',
     sections: {
+      profile: '个人资料',
       security: '账号安全',
       preferences: '偏好设置',
       about: '关于',
     },
     items: {
+      username: '用户名',
+      bio: '个人简介',
+      phone: '手机号',
+      avatar: '头像',
       changePassword: '修改密码',
       bindPhone: '绑定手机',
       notification: '通知开关',
@@ -126,12 +131,20 @@ export default {
       terms: '用户协议',
       privacy: '隐私政策',
     },
+    placeholder: {
+      username: '请输入用户名',
+      bio: '介绍一下自己吧',
+      phone: '请输入手机号',
+    },
     toast: {
       notifyOn: '已开启通知',
       notifyOff: '已关闭通知',
       notImplemented: '功能待开发',
       changePassword: '修改密码功能（待开发）',
       noTerms: '待添加',
+      profileSaved: '资料已保存',
+      profileSaveFailed: '保存失败，请重试',
+      profileLoading: '加载中...',
     },
   },
 

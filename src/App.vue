@@ -13,6 +13,7 @@
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
+import { useUserStore } from '@/store/useUserStore'
 import { getSupabase } from '@/libs/supabase'
 
 /**
@@ -38,8 +39,14 @@ onLaunch(async (options?: App.LaunchShowOption) => {
   const authStore = useAuthStore()
   await authStore.init()
 
-  // 4. 注册全局认证状态变化监听
-  // 当用户在任意标签页登录/登出/刷新 token 时，自动同步 store
+  // 4. 认证恢复成功后，拉取用户资料（profiles 表）
+  const userStore = useUserStore()
+  if (authStore.isAuthenticated) {
+    userStore.fetchProfile()
+  }
+
+  // 5. 注册全局认证状态变化监听
+  // 当用户在任意标签页登录/登出/刷新 token 时，自动同步 store 和资料
   supabase.auth.onAuthStateChange((event, session) => {
     console.log('[App] onAuthStateChange:', event)
 
@@ -48,9 +55,12 @@ onLaunch(async (options?: App.LaunchShowOption) => {
       case 'TOKEN_REFRESHED':
       case 'USER_UPDATED':
         authStore.setSession(session)
+        // 登录/刷新后拉取最新用户资料
+        if (session) userStore.fetchProfile()
         break
       case 'SIGNED_OUT':
         authStore.clearSession()
+        userStore.clearProfile()
         break
       case 'INITIAL_SESSION':
         // getSession() 恢复的初始会话，已在 authStore.init() 中处理

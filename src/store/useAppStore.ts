@@ -11,6 +11,7 @@
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { uniPiniaStorage } from '@/libs/storage'
 
 /** 平台类型 */
 export type Platform = 'h5' | 'mp-weixin' | 'app-android' | 'app-ios' | 'unknown'
@@ -202,17 +203,10 @@ export const useAppStore = defineStore(
     }
   },
   {
-    /** Pinia 持久化配置（只持久化 theme 字段） */
+    /** Pinia 持久化配置（只持久化 theme 字段，复用 libs/storage.ts 适配器） */
     persist: {
       key: 'uni_supabase_app',
-      storage: {
-        getItem(key: string): string | null {
-          return uni.getStorageSync(key) || null
-        },
-        setItem(key: string, value: string): void {
-          uni.setStorageSync(key, value)
-        },
-      },
+      storage: uniPiniaStorage,
       pick: ['theme'],
     },
   },

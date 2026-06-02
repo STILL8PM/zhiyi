@@ -3,6 +3,7 @@ import App from './App.vue'
 import uviewPlus from 'uview-plus'
 import { createPinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
+import { uniPiniaStorage } from '@/libs/storage'
 import i18n from '@/locales'
 
 /**
@@ -28,15 +29,8 @@ export function createApp() {
   // 持久化插件：使用 uni 本地存储适配器
   pinia.use(
     createPersistedState({
-      // 底层存储适配为 uni 的 Storage API
-      storage: {
-        getItem(key: string): string | null {
-          return uni.getStorageSync(key) || null
-        },
-        setItem(key: string, value: string): void {
-          uni.setStorageSync(key, value)
-        },
-      },
+      // 底层存储适配为 uni 的 Storage API（复用 libs/storage.ts 中的适配器）
+      storage: uniPiniaStorage,
     }),
   )
   app.use(pinia)

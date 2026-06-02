@@ -12,33 +12,40 @@ export function useUpload() {
   const uploading = ref(false)
   const progress = ref(0)
 
-  /** 选择并上传图片（含压缩） */
+  /** 选择并上传图片（含压缩，跨端兼容） */
   async function chooseAndUploadImage(bucket: BucketName, folder: string): Promise<string | null> {
     return new Promise((resolve) => {
       uni.chooseImage({
         count: 1,
         sizeType: ['compressed'],
         success: async (res) => {
-          const filePath = res.tempFilePaths[0]
-          const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
+          const ext = res.tempFilePaths[0]?.split('.').pop() || 'jpg'
+          const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
           const storagePath = `${folder}/${fileName}`
 
           uploading.value = true
           progress.value = 0
 
-          const { data, error } = await uploadFile(bucket, storagePath, { path: filePath })
+          // 跨端文件传递策略：
+          // H5：tempFiles[0] 是原生 File 对象 → 直接传给 uploadFile
+          // 小程序/App：只有 tempFilePaths → 传 { path } 由 uploadFile 内部读取
+          const fileBody = res.tempFiles?.[0] || { path: res.tempFilePaths[0] }
+          const { data, error } = await uploadFile(bucket, storagePath, fileBody)
 
           uploading.value = false
           progress.value = 100
 
           if (error) {
-            uni.showToast({ title: '上传失败', icon: 'none' })
+            uni.showToast({ title: '上传失败，请重试', icon: 'none' })
             resolve(null)
           } else {
             resolve(getPublicUrl(bucket, storagePath))
           }
         },
-        fail: () => resolve(null),
+        fail: (err) => {
+          console.warn('[useUpload] 选择图片取消或失败:', err)
+          resolve(null)
+        },
       })
     })
   }

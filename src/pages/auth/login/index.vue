@@ -17,7 +17,7 @@
     <!-- ===== 品牌 Logo 区 ===== -->
     <view class="brand-area" :class="{ 'anim-in': animStep >= 1 }">
       <view class="logo-wrapper">
-        <text class="logo-icon">🔐</text>
+        <text class="logo-icon"></text>
         <view class="logo-ring" />
       </view>
     </view>
@@ -133,7 +133,10 @@ const showPassword = ref(false)
 /** 表单错误信息，空字符串表示无错误 */
 const formError = ref('')
 
-/** ===== 入场动画序列 ===== */
+/** 已保存邮箱的存储键名 */
+const SAVED_EMAIL_KEY = 'uni_supabase_saved_email'
+
+/** ===== 入场动画序列 & 恢复已保存邮箱 ===== */
 onMounted(() => {
   const steps: [number, number][] = [
     [1, 80],
@@ -144,6 +147,16 @@ onMounted(() => {
   steps.forEach(([step, delay]) => {
     setTimeout(() => { animStep.value = step }, delay)
   })
+
+  // 恢复上次登录成功的邮箱，避免每次手动输入
+  try {
+    const savedEmail = uni.getStorageSync(SAVED_EMAIL_KEY)
+    if (savedEmail && typeof savedEmail === 'string') {
+      form.email = savedEmail
+    }
+  } catch {
+    // 读取失败静默忽略，用户手动输入即可
+  }
 })
 
 /** ===== 动态设置导航栏标题（跟随语言切换） ===== */
@@ -171,6 +184,7 @@ const btnCustomStyle = {
 
 /** ===== 邮箱登录 =====
  * 前端校验失败显示在表单内；服务端错误由 useAuth 内部 Toast 处理
+ * 点击登录即持久化邮箱，避免下次重输（不论登录成功与否）
  */
 async function handleLogin(): Promise<void> {
   formError.value = ''
@@ -182,6 +196,13 @@ async function handleLogin(): Promise<void> {
   if (!isStrongPassword(form.password)) {
     formError.value = t('login.validation.weakPassword')
     return
+  }
+
+  // 点击登录即保存邮箱，确保即使登录失败也记住（用户不用重新输入）
+  try {
+    uni.setStorageSync(SAVED_EMAIL_KEY, form.email)
+  } catch {
+    // 写入失败静默忽略
   }
 
   await auth.login(form.email, form.password)
@@ -202,7 +223,6 @@ function goForgotPassword(): void {
 </script>
 
 <style lang="scss" scoped>
-@import 'animate.css';
 
 /* ===== 页面容器 & 背景 ===== */
 .page-container {

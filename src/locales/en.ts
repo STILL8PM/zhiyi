@@ -102,11 +102,16 @@ export default {
   settings: {
     pageTitle: 'Settings',
     sections: {
+      profile: 'Profile',
       security: 'Account Security',
       preferences: 'Preferences',
       about: 'About',
     },
     items: {
+      username: 'Username',
+      bio: 'Bio',
+      phone: 'Phone',
+      avatar: 'Avatar',
       changePassword: 'Change Password',
       bindPhone: 'Bind Phone',
       notification: 'Notifications',
@@ -116,12 +121,20 @@ export default {
       terms: 'Terms of Service',
       privacy: 'Privacy Policy',
     },
+    placeholder: {
+      username: 'Enter username',
+      bio: 'Tell us about yourself',
+      phone: 'Enter phone number',
+    },
     toast: {
       notifyOn: 'Notifications enabled',
       notifyOff: 'Notifications disabled',
       notImplemented: 'Coming soon',
       changePassword: 'Change password (coming soon)',
       noTerms: 'Coming soon',
+      profileSaved: 'Profile saved',
+      profileSaveFailed: 'Save failed, please try again',
+      profileLoading: 'Loading...',
     },
   },
 

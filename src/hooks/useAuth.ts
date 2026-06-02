@@ -122,6 +122,7 @@ export function useAuth() {
    * 登出
    *
    * 清除本地会话 → 跳转登录页
+   * 注意：不清除已保存邮箱，方便同一用户再次登录
    */
   async function logout(): Promise<void> {
     const { error } = await signOut()

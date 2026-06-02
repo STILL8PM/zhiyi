@@ -72,7 +72,6 @@ onShow(() => {
 </script>
 
 <style lang="scss" scoped>
-@import 'animate.css';
 
 /* ===== 容器 & 背景 ===== */
 .page-container {

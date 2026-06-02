@@ -18,6 +18,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Session, User } from '@supabase/supabase-js'
 import { getSupabase } from '@/libs/supabase'
+import { uniPiniaStorage } from '@/libs/storage'
 
 /**
  * 认证 Store
@@ -162,15 +163,8 @@ export const useAuthStore = defineStore(
     // 持久化配置：session 和 user 存入本地存储
     persist: {
       key: 'uni_supabase_auth',
-      // 使用 uni 存储适配器
-      storage: {
-        getItem(key: string): string | null {
-          return uni.getStorageSync(key) || null
-        },
-        setItem(key: string, value: string): void {
-          uni.setStorageSync(key, value)
-        },
-      },
+      // 使用 uni 存储适配器（复用 libs/storage.ts）
+      storage: uniPiniaStorage,
       // 仅持久化这两个字段（不持久化 loading/isReady 等临时状态）
       pick: ['session', 'user'],
     },

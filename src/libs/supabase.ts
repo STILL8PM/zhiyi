@@ -70,7 +70,7 @@ export function getSupabase(): SupabaseClient {
   if (typeof fetchPolyfill === 'function') {
     // Supabase JS SDK 内部通过 global.fetch 发起请求
     // 小程序端需要替换为我们基于 uni.request 的 polyfill
-    ;(globalThis as AnyObject).fetch = fetchPolyfill
+    (globalThis as AnyObject).fetch = fetchPolyfill
   }
   // #endif
 

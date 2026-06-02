@@ -117,7 +117,6 @@ function showToast(msg: string): void {
 </script>
 
 <style lang="scss" scoped>
-@import 'animate.css';
 
 /* ===== 页面容器 ===== */
 .page {
