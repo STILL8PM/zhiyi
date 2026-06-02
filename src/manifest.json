@@ -1,0 +1,84 @@
+{
+  "name": "uni-supabase-app",
+  "appid": "__UNI__SUPABASE__APP",
+  "description": "uni-app + Supabase 全端通用脚手架",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+
+  "transformPx": false,
+
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "waiting": true,
+      "autoclose": true,
+      "delay": 0
+    },
+    "modules": {
+      "OAuth": {}
+    },
+    "distribute": {
+      "android": {
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>"
+        ]
+      },
+      "ios": {},
+      "sdkConfigs": {}
+    }
+  },
+
+  "h5": {
+    "routerMode": "history",
+    "optimization": {
+      "treeShaking": {
+        "enable": true
+      },
+      "prefetch": true,
+      "preload": true
+    },
+    "publicPath": "/",
+    "title": "uni-supabase-app"
+  },
+
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": true,
+      "es6": true,
+      "enhance": true,
+      "postcss": true,
+      "preloadBackgroundData": false,
+      "minified": true,
+      "newFeature": true,
+      "coverView": true,
+      "nodeModules": true,
+      "autoAudits": false,
+      "showShadowRootInWxmlPanel": true,
+      "scopeDataCheck": false,
+      "uglifyFileName": false
+    },
+    "usingComponents": true,
+    "lazyCodeLoading": "requiredComponents",
+    "permission": {
+      "scope.userLocation": {
+        "desc": "获取您的地理位置用于展示附近信息"
+      }
+    },
+    "requiredPrivateInfos": []
+  },
+
+  "quickapp": {},
+  "mp-alipay": {},
+  "mp-baidu": {},
+  "mp-toutiao": {},
+  "uniStatistics": {
+    "enable": false
+  },
+
+  "vueVersion": "3"
+}

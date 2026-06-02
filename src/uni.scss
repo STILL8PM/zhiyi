@@ -1,0 +1,62 @@
+/**
+ * uni.scss — uni-app 全局 SCSS 变量文件
+ *
+ * 用途：
+ * 1. 定义全局 SCSS 变量，适用于所有页面和组件
+ * 2. 引入 uview-plus 主题变量（后续步骤配置）
+ * 3. 通过 vite.config.ts 的 additionalData 自动注入
+ *
+ * 注意：
+ * - 此文件仅用于定义变量/混入，不要写实际的 CSS 规则
+ * - 实际样式规则写在 App.vue 或组件中
+ * - 变量命名建议遵循 BEM + 语义化原则
+ *
+ * 参考: https://uniapp.dcloud.net.cn/collocation/uni-scss.html
+ */
+
+/* ===== uni-app 内置变量（可覆盖） ===== */
+
+/* 主色调 */
+$uni-color-primary: #2979FF;
+$uni-color-success: #18BC37;
+$uni-color-warning: #F3A73F;
+$uni-color-error: #E43D33;
+
+/* 文字颜色 */
+$uni-text-color: #333333;
+$uni-text-color-grey: #999999;
+$uni-text-color-placeholder: #C0C0C0;
+
+/* 背景色 */
+$uni-bg-color: #F5F6F8;
+$uni-bg-color-grey: #F0F0F0;
+$uni-bg-color-hover: #F1F1F1;
+$uni-bg-color-mask: rgba(0, 0, 0, 0.4);
+
+/* 边框 */
+$uni-border-color: #E5E5E5;
+$uni-border-radius: 8rpx;
+
+/* 间距 */
+$uni-spacing-sm: 12rpx;
+$uni-spacing-base: 24rpx;
+$uni-spacing-lg: 32rpx;
+$uni-spacing-xl: 48rpx;
+
+/* 字体 */
+$uni-font-size-sm: 24rpx;
+$uni-font-size-base: 28rpx;
+$uni-font-size-lg: 32rpx;
+$uni-font-size-xl: 36rpx;
+
+/* 阴影 */
+$uni-shadow-base: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+
+/* ===== 应用自定义变量 ===== */
+
+/* 导航栏 */
+$navbar-height: 44px;
+$status-bar-height: 20px;
+
+/* 安全区域 */
+$safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
