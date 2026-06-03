@@ -95,54 +95,85 @@ onHide(() => {
 @import 'animate.css';
 
 /* ================================================================
-   CSS 自定义属性（浅色主题 —— 默认）
-   通过 page.theme-dark 覆盖深色主题值
-   所有页面组件使用 var(--xxx) 引用，实现运行时主题切换
+   浅色主题（默认）
+   两层变量：
+     --bg-* / --text-* / --color-*  → 自定义组件用
+     --up-*                          → uview-plus 组件用（upThemeVar 运行时读取）
    ================================================================ */
-
 page {
-  /* ---- 背景 ---- */
+  /* ==== 自定义变量 ==== */
   --bg-primary: #ffffff;
   --bg-secondary: #f5f6f8;
   --bg-card: #ffffff;
   --bg-input: #f8f9fc;
   --bg-error: #fff2f0;
-
-  /* ---- 文字 ---- */
+  --bg-mask: rgba(0, 0, 0, 0.4);
   --text-primary: #1a1a1a;
   --text-secondary: #999999;
+  --text-placeholder: #c0c0c0;
   --text-inverse: #ffffff;
-
-  /* ---- 品牌色 ---- */
   --color-primary: #2979FF;
+  --color-primary-light: rgba(41, 121, 255, 0.08);
   --color-primary-gradient: linear-gradient(135deg, #2979FF 0%, #4A90D9 100%);
   --color-success: #18BC37;
   --color-warning: #F3A73F;
   --color-error: #E43D33;
   --color-link: #2979FF;
-
-  /* ---- 边框 & 分割线 ---- */
+  --splash-bg: linear-gradient(135deg, #2979FF 0%, #4A90D9 50%, #63B4FF 100%);
   --border-color: #f0f0f0;
-  --border-focus: rgba(41, 121, 255, 0.4);
+  --border-focus: var(--color-primary-glow);
   --border-error: #FFCCC7;
   --divider: #eeeeee;
-
-  /* ---- 阴影 ---- */
   --shadow-light: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
   --shadow-card: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
-  --shadow-button: 0 8rpx 24rpx rgba(41, 121, 255, 0.35);
+  --shadow-button: 0 8rpx 24rpx var(--color-primary-shadow);
   --shadow-oauth: 0 12rpx 28rpx rgba(0, 0, 0, 0.08);
-
-  /* ---- OAuth 按钮 ---- */
   --oauth-button-bg: #f8f9fc;
   --wechat-bg: #f0faf0;
   --wechat-border: #d4edda;
-
-  /* ---- 滚动条（H5 端） ---- */
   --scrollbar-thumb: #c0c0c0;
   --scrollbar-track: #f0f0f0;
 
-  /* ---- 全局基础样式 ---- */
+  /* ==== uview-plus 组件变量（浅色）==== */
+  /* uview-plus 的 upThemeVar() 运行时读取这些变量控制组件颜色 */
+  --up-main-color: #303133;           /* 主要文字 */
+  --up-tips-color: #909399;           /* 提示/placeholder */
+  --up-content-color: #303133;        /* 内容文字 */
+  --up-light-color: #c0c4cc;          /* 浅色文字 */
+  --up-bg-color: #f3f4f6;             /* 通用背景 */
+  --up-page-bg-color: #f5f6f8;        /* 页面背景 */
+  --up-navbar-bg-color: #ffffff;      /* 导航栏背景 */
+  --up-card-bg-color: #ffffff;        /* 卡片背景 */
+  --up-hover-bg-color: #f0f0f0;       /* 悬停背景 */
+  --up-border-color: #dadbde;         /* 边框 */
+  --up-light-bg-color: #f8f9fc;       /* 浅色背景 */
+  --up-light-border-color: #e4e7ed;   /* 浅色边框 */
+  --up-disabled-color: #c0c4cc;       /* 禁用文字 */
+  --up-skeleton-bg-color: #f2f3f5;    /* 骨架屏背景 */
+  --up-skeleton-shimmer-color: #e8e8e8;
+  /* 语义色 */
+  --up-primary: #2979FF;
+  --up-primary-dark: #1a5fd9;
+  --up-primary-light: #ecf5ff;
+  --up-primary-disabled: #a0cfff;
+  --up-success: #18BC37;
+  --up-success-dark: #12992c;
+  --up-success-light: #e8f8eb;
+  --up-success-disabled: #8ce09b;
+  --up-warning: #F3A73F;
+  --up-warning-dark: #c7861f;
+  --up-warning-light: #fdf3e5;
+  --up-warning-disabled: #f9d39f;
+  --up-error: #E43D33;
+  --up-error-dark: #b82e26;
+  --up-error-light: #fde8e7;
+  --up-error-disabled: #f19e9a;
+  --up-info: #909399;
+  --up-info-dark: #6b6e75;
+  --up-info-light: #f2f3f5;
+  --up-info-disabled: #c8c9cb;
+
+  /* ---- 全局基础 ---- */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   font-size: $uni-font-size-base;
@@ -150,50 +181,210 @@ page {
   background-color: var(--bg-secondary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ================================================================
-   深色主题覆盖
-   H5 端通过 document.documentElement.classList.add('theme-dark') 激活
-   小程序端通过 uni.$emit('themeChanged') 通知各页面绑定 :class
+   深色主题
+   同时覆盖自定义变量 + uview-plus --up-* 变量
+   选择器：.theme-dark（小程序根元素）/ :root.theme-dark page（H5）
+   触发 uview-plus 运行时更新：uni.$emit('uThemeChange')
+   ================================================================ */
+.theme-dark,
+:root.theme-dark page {
+  /* ==== 自定义变量 ==== */
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #141428;
+  --bg-card: #1a1a30;
+  --bg-input: #222240;
+  --bg-error: #2d1518;
+  --bg-mask: rgba(0, 0, 0, 0.65);
+  --text-primary: #eaeaea;
+  --text-secondary: #7888a0;
+  --text-placeholder: #556070;
+  --color-primary: #4d95ff;
+  --color-primary-light: rgba(77, 149, 255, 0.12);
+  --color-primary-gradient: linear-gradient(135deg, #4d95ff 0%, #6aa8e8 100%);
+  --color-link: #4d95ff;
+  --splash-bg: linear-gradient(135deg, #0d1a40 0%, #142850 50%, #0a1230 100%);
+  --border-color: #2a2a48;
+  --border-focus: var(--color-primary-glow);
+  --border-error: #4a2025;
+  --divider: #2a2a48;
+  --shadow-light: 0 4rpx 20rpx rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4rpx 20rpx rgba(0, 0, 0, 0.35);
+  --shadow-button: 0 8rpx 24rpx var(--color-primary-shadow);
+  --shadow-oauth: 0 12rpx 28rpx rgba(0, 0, 0, 0.45);
+  --oauth-button-bg: #222240;
+  --wechat-bg: #0f2818;
+  --wechat-border: #1a3a28;
+  --scrollbar-thumb: #2a2a48;
+  --scrollbar-track: #0f0f1a;
+
+  /* ==== uview-plus 组件变量（深色）==== */
+  --up-main-color: #eaeaea;
+  --up-tips-color: #7888a0;
+  --up-content-color: #eaeaea;
+  --up-light-color: #556070;
+  --up-bg-color: #222240;
+  --up-page-bg-color: #141428;
+  --up-navbar-bg-color: #0f0f1a;
+  --up-card-bg-color: #1a1a30;
+  --up-hover-bg-color: #2a2a48;
+  --up-border-color: #2a2a48;
+  --up-light-bg-color: #222240;
+  --up-light-border-color: #2a2a48;
+  --up-disabled-color: #556070;
+  --up-skeleton-bg-color: #1a1a30;
+  --up-skeleton-shimmer-color: #2a2a48;
+  /* 语义色 */
+  --up-primary: #4d95ff;
+  --up-primary-dark: #3a7ce0;
+  --up-primary-light: #1a2a48;
+  --up-primary-disabled: #3a5a80;
+  --up-success: #18BC37;
+  --up-success-dark: #12992c;
+  --up-success-light: #0f2818;
+  --up-success-disabled: #1a5a28;
+  --up-warning: #F3A73F;
+  --up-warning-dark: #c7861f;
+  --up-warning-light: #2a1a0a;
+  --up-warning-disabled: #5a3a1a;
+  --up-error: #E43D33;
+  --up-error-dark: #b82e26;
+  --up-error-light: #2d1518;
+  --up-error-disabled: #5a2020;
+  --up-info: #7888a0;
+  --up-info-dark: #556070;
+  --up-info-light: #1a1a30;
+  --up-info-disabled: #3a3a50;
+}
+
+/* ================================================================
+   主题色方案（独立于深色模式，只控制品牌强调色）
+   每个方案定义浅色 + 深色两套变量
+   页面根元素绑定 class 如 color-black、color-blue 等
    ================================================================ */
 
-page.theme-dark {
-  /* ---- 背景 ---- */
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-card: #1e2a45;
-  --bg-input: #2a3a5c;
-  --bg-error: #3d2020;
+/* ==== 黑色主题（默认）==== */
+.color-black {
+  --color-primary: #1a1a1a;
+  --color-primary-gradient: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+  --color-primary-light: rgba(26, 26, 26, 0.08);
+  --color-primary-glow: rgba(26, 26, 26, 0.20);
+  --color-primary-shadow: rgba(26, 26, 26, 0.35);
+  --color-link: #1a1a1a;
+  --up-primary: #1a1a1a;
+  --up-primary-dark: #0d0d0d;
+  --up-primary-light: rgba(26, 26, 26, 0.06);
+  --up-primary-disabled: #aaaaaa;
+}
+.color-black.theme-dark,
+:root.theme-dark .color-black {
+  --color-primary: #cccccc;
+  --color-primary-gradient: linear-gradient(135deg, #cccccc 0%, #999999 100%);
+  --color-primary-light: rgba(200, 200, 200, 0.12);
+  --color-primary-glow: rgba(200, 200, 200, 0.25);
+  --color-primary-shadow: rgba(200, 200, 200, 0.2);
+  --color-link: #cccccc;
+  --up-primary: #cccccc;
+  --up-primary-dark: #aaaaaa;
+  --up-primary-light: rgba(200, 200, 200, 0.08);
+  --up-primary-disabled: #555555;
+}
 
-  /* ---- 文字 ---- */
-  --text-primary: #e8e8e8;
-  --text-secondary: #8899aa;
+/* ==== 蓝色主题 ==== */
+.color-blue {
+  --color-primary: #2979FF;
+  --color-primary-gradient: linear-gradient(135deg, #2979FF 0%, #4A90D9 100%);
+  --color-primary-light: rgba(41, 121, 255, 0.08);
+  --color-primary-glow: rgba(41, 121, 255, 0.20);
+  --color-primary-shadow: rgba(41, 121, 255, 0.35);
+  --color-link: #2979FF;
+  --up-primary: #2979FF;
+  --up-primary-dark: #1a5fd9;
+  --up-primary-light: #ecf5ff;
+  --up-primary-disabled: #a0cfff;
+}
+.color-blue.theme-dark,
+:root.theme-dark .color-blue {
+  --color-primary: #4d95ff;
+  --color-primary-gradient: linear-gradient(135deg, #4d95ff 0%, #6aa8e8 100%);
+  --color-primary-light: rgba(77, 149, 255, 0.12);
+  --color-primary-glow: rgba(77, 149, 255, 0.25);
+  --color-primary-shadow: rgba(77, 149, 255, 0.25);
+  --color-link: #4d95ff;
+  --up-primary: #4d95ff;
+  --up-primary-dark: #3a7ce0;
+  --up-primary-light: #1a2a48;
+  --up-primary-disabled: #3a5a80;
+}
 
-  /* ---- 品牌色 ---- */
-  --color-primary: #3d8aff;
-  --color-primary-gradient: linear-gradient(135deg, #3d8aff 0%, #5a9fe6 100%);
-  --color-link: #3d8aff;
+/* ==== 红色主题 ==== */
+.color-red {
+  --color-primary: #E43D33;
+  --color-primary-gradient: linear-gradient(135deg, #E43D33 0%, #f06050 100%);
+  --color-primary-light: rgba(228, 61, 51, 0.08);
+  --color-primary-glow: rgba(228, 61, 51, 0.20);
+  --color-primary-shadow: rgba(228, 61, 51, 0.35);
+  --color-link: #E43D33;
+  --up-primary: #E43D33;
+  --up-primary-dark: #b82e26;
+  --up-primary-light: #fde8e7;
+  --up-primary-disabled: #f19e9a;
+}
+.color-red.theme-dark,
+:root.theme-dark .color-red {
+  --color-primary: #f05555;
+  --color-primary-gradient: linear-gradient(135deg, #f05555 0%, #f57070 100%);
+  --color-primary-light: rgba(240, 85, 85, 0.12);
+  --color-primary-glow: rgba(240, 85, 85, 0.25);
+  --color-primary-shadow: rgba(240, 85, 85, 0.25);
+  --color-link: #f05555;
+  --up-primary: #f05555;
+  --up-primary-dark: #d04040;
+  --up-primary-light: #2d1518;
+  --up-primary-disabled: #5a3030;
+}
 
-  /* ---- 边框 & 分割线 ---- */
-  --border-color: #2a3a5c;
-  --border-focus: rgba(65, 140, 255, 0.4);
-  --border-error: #5a3030;
-  --divider: #2a3a5c;
+/* ==== 绿色主题 ==== */
+.color-green {
+  --color-primary: #18BC37;
+  --color-primary-gradient: linear-gradient(135deg, #18BC37 0%, #2cd050 100%);
+  --color-primary-light: rgba(24, 188, 55, 0.08);
+  --color-primary-glow: rgba(24, 188, 55, 0.20);
+  --color-primary-shadow: rgba(24, 188, 55, 0.35);
+  --color-link: #18BC37;
+  --up-primary: #18BC37;
+  --up-primary-dark: #12992c;
+  --up-primary-light: #e8f8eb;
+  --up-primary-disabled: #8ce09b;
+}
+.color-green.theme-dark,
+:root.theme-dark .color-green {
+  --color-primary: #22d944;
+  --color-primary-gradient: linear-gradient(135deg, #22d944 0%, #40e860 100%);
+  --color-primary-light: rgba(34, 217, 68, 0.12);
+  --color-primary-glow: rgba(34, 217, 68, 0.25);
+  --color-primary-shadow: rgba(34, 217, 68, 0.25);
+  --color-link: #22d944;
+  --up-primary: #22d944;
+  --up-primary-dark: #19b033;
+  --up-primary-light: #0f2818;
+  --up-primary-disabled: #1a5a28;
+}
 
-  /* ---- 阴影 ---- */
-  --shadow-light: 0 4rpx 20rpx rgba(0, 0, 0, 0.3);
-  --shadow-card: 0 4rpx 20rpx rgba(0, 0, 0, 0.25);
-  --shadow-button: 0 8rpx 24rpx rgba(41, 121, 255, 0.2);
-  --shadow-oauth: 0 12rpx 28rpx rgba(0, 0, 0, 0.35);
+/* ================================================================
+   深色模式 H5 辅助覆盖
+   ================================================================ */
+.theme-dark {
+  /* 平滑过渡 */
+  &, page, view, text, input {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
 
-  /* ---- OAuth 按钮 ---- */
-  --oauth-button-bg: #2a3a5c;
-  --wechat-bg: #1a3a2a;
-  --wechat-border: #2a5a3a;
-
-  /* ---- 滚动条 ---- */
-  --scrollbar-thumb: #3a3a5a;
-  --scrollbar-track: #1a1a2e;
+  /* H5 滚动条 */
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
 }
 </style>

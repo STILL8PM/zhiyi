@@ -7,6 +7,10 @@
  * 跨端文件读取策略：
  * - H5：uni.chooseImage 返回的 tempFiles[0] 是原生 File 对象，直接传给 Supabase
  * - 小程序/App：通过 uni.getFileSystemManager().readFileSync() 读取为 ArrayBuffer
+ *
+ * 头像上传策略：
+ * - avatars 桶通过 Edge Function（service_role）上传，绕过 storage.objects RLS 限制
+ * - 原因：storage.objects 表属 supabase_storage_admin，postgres 角色无法创建 RLS 策略
  */
 
 import { getSupabase } from '@/libs/supabase'
@@ -105,6 +109,64 @@ export async function deleteFile(
     const { error } = await supabase.storage.from(bucket).remove(paths)
     if (error) return { data: null, error, status: 400 }
     return { data: null, error: null, status: 200 }
+  } catch (err) {
+    return { data: null, error: { message: (err as Error).message }, status: 500 }
+  }
+}
+
+/**
+ * 通过 Edge Function 上传头像（使用 service_role 绕过 storage RLS）
+ *
+ * 背景：storage.objects 的 RLS 策略因权限问题无法创建，
+ *       改用 Supabase Edge Function 在服务端以 service_role 执行上传。
+ *
+ * @param file - 文件对象（File/Blob）或 { path } 路径对象
+ * @param fileName - 文件名（不含目录前缀，Function 端会自动加 userId 目录）
+ * @returns 上传成功后的公开 URL
+ */
+export async function uploadAvatarViaEdgeFunction(
+  file: File | Blob | { path: string },
+  fileName?: string,
+): Promise<ApiResponse<{ url: string; path: string }>> {
+  try {
+    const supabase = getSupabase()
+
+    // 构建 FormData
+    const formData = new FormData()
+
+    // H5 端：File/Blob 对象直接 append
+    if (file instanceof File || file instanceof Blob) {
+      const name = fileName || (file instanceof File ? file.name : 'avatar.jpg')
+      formData.append('file', file, name)
+    } else if (typeof file.path === 'string') {
+      // 小程序/App 端：从路径读取后构造 File
+      // #ifdef MP-WEIXIN || APP-PLUS
+      const fs = uni.getFileSystemManager()
+      const buffer = fs.readFileSync(file.path)
+      const blob = new Blob([buffer])
+      formData.append('file', blob, fileName || 'avatar.jpg')
+      // #endif
+      // #ifdef H5
+      const response = await fetch(file.path)
+      const blob = await response.blob()
+      formData.append('file', blob, fileName || 'avatar.jpg')
+      // #endif
+    }
+
+    // 调用 Edge Function，supabase-js 会自动附带当前用户的 JWT
+    const { data, error } = await supabase.functions.invoke('upload-avatar', {
+      body: formData,
+    })
+
+    if (error) {
+      return { data: null, error: { message: error.message || '上传失败' }, status: 400 }
+    }
+
+    return {
+      data: { url: (data as { url: string }).url, path: (data as { path: string }).path },
+      error: null,
+      status: 200,
+    }
   } catch (err) {
     return { data: null, error: { message: (err as Error).message }, status: 500 }
   }

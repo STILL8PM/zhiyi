@@ -1,35 +1,28 @@
 <!--
   登录页
-  支持：邮箱登录、跳转注册、跳转找回密码、微信小程序登录
+  支持：邮箱登录、记住密码、跳转注册、跳转找回密码、微信小程序登录
 
   动画：品牌 Logo → 标题 → 表单（stagger 入场）
   深色模式：通过 CSS 自定义属性适配
   国际化：所有文案通过 $t() 引用
 -->
 <template>
-  <view class="page-container">
-    <!-- ===== 背景装饰层 ===== -->
-    <view class="bg-decor">
-      <view class="bg-circle bg-circle--1" />
-      <view class="bg-circle bg-circle--2" />
-    </view>
-
+  <view class="page-container" :class="[appStore.pageClass, { 'theme-dark': isDark }]">
     <!-- ===== 品牌 Logo 区 ===== -->
-    <view class="brand-area" :class="{ 'anim-in': animStep >= 1 }">
+    <view class="brand-area">
       <view class="logo-wrapper">
-        <text class="logo-icon"></text>
-        <view class="logo-ring" />
+        <image class="logo-img" src="/static/images/my-icon.png" mode="aspectFit" />
       </view>
     </view>
 
     <!-- ===== 标题区 ===== -->
-    <view class="header-area" :class="{ 'anim-in': animStep >= 2 }">
+    <view class="header-area">
       <text class="title">{{ $t('login.title') }}</text>
       <text class="subtitle">{{ $t('login.subtitle') }}</text>
     </view>
 
     <!-- ===== 表单区 ===== -->
-    <view class="form-area" :class="{ 'anim-in': animStep >= 3 }">
+    <view class="form-area">
       <!-- 邮箱输入框 -->
       <view class="input-wrapper" :class="{ 'is-focused': focusedField === 'email' }">
         <u-input
@@ -60,8 +53,16 @@
         </view>
       </view>
 
+      <!-- 记住密码 -->
+      <view class="remember-row" @click="rememberPwd = !rememberPwd">
+        <view class="remember-checkbox" :class="{ 'is-checked': rememberPwd }">
+          <text v-if="rememberPwd" class="check-icon">✓</text>
+        </view>
+        <text class="remember-label">{{ $t('login.rememberPwd') }}</text>
+      </view>
+
       <!-- 表单错误信息（带抖动动画） -->
-      <view v-if="formError" class="form-error">
+      <view v-if="formError" class="form-error animate__animated animate__shakeX">
         <text class="error-text">{{ formError }}</text>
       </view>
 
@@ -86,7 +87,7 @@
 
     <!-- ===== 微信小程序登录（仅 MP-WEIXIN 平台） ===== -->
     <!-- #ifdef MP-WEIXIN -->
-    <view class="oauth-area" :class="{ 'anim-in': animStep >= 4 }">
+    <view class="oauth-area">
       <view class="divider-row">
         <view class="divider-line" />
         <text class="divider-text">{{ $t('login.oauthDivider') }}</text>
@@ -104,25 +105,27 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/hooks/useAuth'
+import { useAppStore } from '@/store/useAppStore'
 import { isEmail, isStrongPassword } from '@/utils/validate'
 
 /** ===== 认证 Hook ===== */
 const auth = useAuth()
+const appStore = useAppStore()
 
 /** ===== i18n ===== */
 const { t } = useI18n()
+
+/** 当前页面是否处于深色模式（用于根元素 class 绑定，适配小程序端） */
+const isDark = computed(() => appStore.theme === 'dark')
 
 /** ===== 表单数据 ===== */
 const form = reactive({ email: '', password: '' })
 
 /** ===== UI 状态 ===== */
-
-/** 入场动画步数：1=Logo 2=标题 3=表单 4=OAuth，0=隐藏 */
-const animStep = ref(0)
 
 /** 当前聚焦的输入框字段名，空字符串表示无聚焦 */
 const focusedField = ref('')
@@ -130,24 +133,23 @@ const focusedField = ref('')
 /** 是否显示密码明文 */
 const showPassword = ref(false)
 
+/** 是否记住密码（勾选后密码会 Base64 编码存入本地存储） */
+const rememberPwd = ref(false)
+
 /** 表单错误信息，空字符串表示无错误 */
 const formError = ref('')
 
 /** 已保存邮箱的存储键名 */
 const SAVED_EMAIL_KEY = 'uni_supabase_saved_email'
 
-/** ===== 入场动画序列 & 恢复已保存邮箱 ===== */
-onMounted(() => {
-  const steps: [number, number][] = [
-    [1, 80],
-    [2, 200],
-    [3, 380],
-    [4, 560],
-  ]
-  steps.forEach(([step, delay]) => {
-    setTimeout(() => { animStep.value = step }, delay)
-  })
+/** 已保存密码的存储键名（Base64 编码存储） */
+const SAVED_PASSWORD_KEY = 'uni_supabase_saved_password'
 
+/** 是否记住密码的标记键名 */
+const REMEMBER_PWD_KEY = 'uni_supabase_remember_pwd'
+
+/** ===== 恢复已保存邮箱和密码 ===== */
+onMounted(() => {
   // 恢复上次登录成功的邮箱，避免每次手动输入
   try {
     const savedEmail = uni.getStorageSync(SAVED_EMAIL_KEY)
@@ -157,29 +159,43 @@ onMounted(() => {
   } catch {
     // 读取失败静默忽略，用户手动输入即可
   }
+
+  // 恢复记住的密码：仅在用户之前勾选"记住密码"时才恢复
+  try {
+    const rememberFlag = uni.getStorageSync(REMEMBER_PWD_KEY)
+    if (rememberFlag === true || rememberFlag === 'true') {
+      const savedPassword = uni.getStorageSync(SAVED_PASSWORD_KEY)
+      if (savedPassword && typeof savedPassword === 'string') {
+        form.password = decodeURIComponent(savedPassword)
+        rememberPwd.value = true
+      }
+    }
+  } catch {
+    // 读取失败静默忽略
+  }
 })
 
-/** ===== 动态设置导航栏标题（跟随语言切换） ===== */
+/** ===== 页面显示 ===== */
 onShow(() => {
-  uni.setNavigationBarTitle({ title: t('login.pageTitle') })
+  // 使用原生导航栏，动态设置 i18n 标题
+  // uni.setNavigationBarTitle({ title: t('login.pageTitle') })
 })
 
-/** ===== u-input 自定义样式 ===== */
+/** ===== u-input 自定义样式（颜色由 CSS 变量控制，适配深色模式） ===== */
 const inputCustomStyle = {
   fontSize: '30rpx',
-  color: '#333',
   height: '96rpx',
 }
 
-/** ===== 登录按钮自定义样式 ===== */
+/** ===== 登录按钮自定义样式（渐变用 CSS 变量，适配深色模式） ===== */
 const btnCustomStyle = {
   height: '96rpx',
   fontSize: '34rpx',
   fontWeight: 'bold',
   letterSpacing: '8rpx',
-  background: 'linear-gradient(135deg, #2979FF 0%, #4A90D9 100%)',
+  background: 'var(--color-primary-gradient)',
   border: 'none',
-  boxShadow: '0 8rpx 24rpx rgba(41, 121, 255, 0.35)',
+  boxShadow: '0 8rpx 24rpx var(--color-primary-shadow)',
 }
 
 /** ===== 邮箱登录 =====
@@ -205,6 +221,19 @@ async function handleLogin(): Promise<void> {
     // 写入失败静默忽略
   }
 
+  // 记住密码：勾选时编码存储密码和标记，未勾选时清除已存密码
+  try {
+    if (rememberPwd.value) {
+      uni.setStorageSync(REMEMBER_PWD_KEY, true)
+      uni.setStorageSync(SAVED_PASSWORD_KEY, encodeURIComponent(form.password))
+    } else {
+      uni.removeStorageSync(SAVED_PASSWORD_KEY)
+      uni.setStorageSync(REMEMBER_PWD_KEY, false)
+    }
+  } catch {
+    // 写入失败静默忽略
+  }
+
   await auth.login(form.email, form.password)
 }
 
@@ -224,7 +253,7 @@ function goForgotPassword(): void {
 
 <style lang="scss" scoped>
 
-/* ===== 页面容器 & 背景 ===== */
+/* ===== 页面容器 ===== */
 .page-container {
   min-height: 100vh;
   background: var(--bg-primary);
@@ -236,76 +265,22 @@ function goForgotPassword(): void {
   align-items: center;
 }
 
-.bg-decor {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 500rpx;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.bg-circle {
-  position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(41, 121, 255, 0.08) 0%, rgba(74, 144, 217, 0.04) 100%);
-
-  &--1 {
-    width: 520rpx; height: 520rpx;
-    top: -260rpx; right: -160rpx;
-    animation: bgFloat1 8s ease-in-out infinite;
-  }
-  &--2 {
-    width: 360rpx; height: 360rpx;
-    top: -80rpx; left: -120rpx;
-    animation: bgFloat2 10s ease-in-out infinite;
-  }
-}
-
-@keyframes bgFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-30rpx, 20rpx) scale(1.05); }
-}
-@keyframes bgFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(20rpx, -16rpx) scale(1.08); }
-}
-
 /* ===== 品牌 Logo ===== */
 .brand-area {
   margin-top: 140rpx;
   position: relative;
   z-index: 1;
-  opacity: 0;
-  transform: translateY(-30rpx);
-
-  &.anim-in { animation: fadeInDown 0.6s ease forwards; }
 }
 
 .logo-wrapper {
   width: 140rpx; height: 140rpx;
-  border-radius: 36rpx;
-  background: var(--color-primary-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: 0 16rpx 40rpx rgba(41, 121, 255, 0.3);
 }
 
-.logo-icon { font-size: 64rpx; position: relative; z-index: 2; }
-
-.logo-ring {
-  position: absolute;
-  width: 160rpx; height: 160rpx;
-  border-radius: 50%;
-  border: 3rpx dashed rgba(255, 255, 255, 0.3);
-  animation: ringRotate 6s linear infinite;
-}
-
-@keyframes ringRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+.logo-img { width: 150rpx; height: 150rpx; }
 
 /* ===== 标题 ===== */
 .header-area {
@@ -313,10 +288,6 @@ function goForgotPassword(): void {
   text-align: center;
   position: relative;
   z-index: 1;
-  opacity: 0;
-  transform: translateY(20rpx);
-
-  &.anim-in { animation: fadeInUp 0.55s ease forwards; }
 }
 
 .title {
@@ -340,10 +311,6 @@ function goForgotPassword(): void {
   margin-top: 64rpx;
   position: relative;
   z-index: 1;
-  opacity: 0;
-  transform: translateY(24rpx);
-
-  &.anim-in { animation: fadeInUp 0.5s ease forwards; }
 }
 
 /* 输入框包装 */
@@ -358,7 +325,7 @@ function goForgotPassword(): void {
 
   &.is-focused {
     border-color: var(--border-focus);
-    box-shadow: 0 0 0 8rpx rgba(41, 121, 255, 0.06);
+    box-shadow: 0 0 0 8rpx var(--color-primary-light);
     background: var(--bg-primary);
   }
 
@@ -370,6 +337,42 @@ function goForgotPassword(): void {
 .pwd-toggle { position: absolute; right: 20rpx; top: 50%; transform: translateY(-50%); z-index: 3; padding: 8rpx; }
 .toggle-icon { font-size: 36rpx; opacity: 0.5; }
 
+/* 记住密码复选框 */
+.remember-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+  padding: 12rpx 0;
+}
+
+.remember-checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12rpx;
+  transition: all 0.2s ease;
+
+  &.is-checked {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+}
+
+.check-icon {
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+.remember-label {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
 /* 表单错误 */
 .form-error {
   padding: 16rpx 24rpx;
@@ -377,7 +380,6 @@ function goForgotPassword(): void {
   background: var(--bg-error);
   border-radius: 12rpx;
   border: 1rpx solid var(--border-error);
-  animation: shakeX 0.5s ease;
 }
 .error-text { font-size: 26rpx; color: var(--color-error); line-height: 1.5; }
 
@@ -410,10 +412,6 @@ function goForgotPassword(): void {
   padding-bottom: 60rpx;
   position: relative;
   z-index: 1;
-  opacity: 0;
-  transform: translateY(24rpx);
-
-  &.anim-in { animation: fadeInUp 0.45s ease forwards; }
 }
 
 .divider-row {
@@ -458,18 +456,4 @@ function goForgotPassword(): void {
 .oauth-icon-text { font-size: 48rpx; font-weight: 700; color: var(--text-primary); margin-bottom: 8rpx; }
 .oauth-label { font-size: 24rpx; color: var(--text-secondary); }
 
-/* ===== 自定义 keyframes ===== */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24rpx); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-30rpx); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes shakeX {
-  0%, 100% { transform: translateX(0); }
-  10%, 50%, 90% { transform: translateX(-8rpx); }
-  30%, 70% { transform: translateX(8rpx); }
-}
 </style>

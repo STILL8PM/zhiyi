@@ -7,14 +7,62 @@
  * 3. 首次启动标记
  * 4. 全局加载状态
  * 5. 主题模式（light/dark）—— 持久化 + 系统偏好检测
+ * 6. 主题色方案（black/blue/red/green）—— 持久化，默认黑色
  */
 
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { uniPiniaStorage } from '@/libs/storage'
 
 /** 平台类型 */
 export type Platform = 'h5' | 'mp-weixin' | 'app-android' | 'app-ios' | 'unknown'
+
+/** 主题色方案标识 */
+export type ColorScheme = 'black' | 'blue' | 'red' | 'green'
+
+/** 主题色方案定义 */
+export interface ColorSchemeDef {
+  name: string           // 中文名
+  nameEn: string         // 英文名
+  /** 浅色模式下 tabBar 选中色 */
+  tabBarSelected: string
+  /** 深色模式下 tabBar 选中色 */
+  tabBarSelectedDark: string
+  /** 浅色导航栏背景色 */
+  navBarBg: string
+}
+
+/** 所有可选主题色方案 */
+export const COLOR_SCHEMES: Record<ColorScheme, ColorSchemeDef> = {
+  black: {
+    name: '极致黑',
+    nameEn: 'Black',
+    tabBarSelected: '#1a1a1a',
+    tabBarSelectedDark: '#cccccc',
+    navBarBg: '#1a1a1a',
+  },
+  blue: {
+    name: '知忆蓝',
+    nameEn: 'Blue',
+    tabBarSelected: '#2979FF',
+    tabBarSelectedDark: '#4d95ff',
+    navBarBg: '#2979FF',
+  },
+  red: {
+    name: '赤霞红',
+    nameEn: 'Red',
+    tabBarSelected: '#E43D33',
+    tabBarSelectedDark: '#f05555',
+    navBarBg: '#E43D33',
+  },
+  green: {
+    name: '翡翠绿',
+    nameEn: 'Green',
+    tabBarSelected: '#18BC37',
+    tabBarSelectedDark: '#22d944',
+    navBarBg: '#18BC37',
+  },
+}
 
 export const useAppStore = defineStore(
   'app',
@@ -41,6 +89,12 @@ export const useAppStore = defineStore(
 
     /** 主题模式（持久化到本地存储） */
     const theme = ref<'light' | 'dark'>('light')
+
+    /** 主题色方案（持久化到本地存储，默认黑色） */
+    const colorScheme = ref<ColorScheme>('black')
+
+    /** 当前页面的 CSS class 组合（供各页面根元素绑定） */
+    const pageClass = computed(() => `color-${colorScheme.value}`)
 
     // ===== 操作方法 =====
 
@@ -130,7 +184,7 @@ export const useAppStore = defineStore(
       uni.setStorageSync('uni_supabase_theme', newTheme)
     }
 
-    /** 应用主题到 DOM 和平台 UI */
+    /** 应用主题到 DOM 和平台 UI，并触发 uview-plus 运行时主题更新 */
     function applyTheme(newTheme: 'light' | 'dark'): void {
       theme.value = newTheme
 
@@ -148,6 +202,14 @@ export const useAppStore = defineStore(
       uni.$emit('themeChanged', newTheme)
       // #endif
 
+      // 触发 uview-plus 运行时主题刷新（upThemeVar 重新读取 CSS 变量）
+      // uview-plus 内部监听 uni.$on('uThemeChange') 来刷新组件颜色
+      try {
+        uni.$emit('uThemeChange', { version: Date.now() })
+      } catch {
+        // 静默忽略
+      }
+
       // 更新导航栏颜色
       applyNavBarTheme(newTheme)
 
@@ -155,25 +217,38 @@ export const useAppStore = defineStore(
       applyTabBarTheme(newTheme)
     }
 
-    /** 设置导航栏颜色 */
+    /** 设置导航栏颜色（与 App.vue 深色 CSS 变量保持一致） */
     function applyNavBarTheme(newTheme: 'light' | 'dark'): void {
       const isDark = newTheme === 'dark'
       uni.setNavigationBarColor({
         frontColor: isDark ? '#ffffff' : '#000000',
-        backgroundColor: isDark ? '#1a1a2e' : '#ffffff',
+        backgroundColor: isDark ? '#0f0f1a' : '#ffffff',
         animation: { duration: 300, timingFunc: 'easeInOut' },
       })
     }
 
-    /** 设置 TabBar 颜色 */
+    /** 设置 TabBar 颜色（跟随深色模式 + 主题色方案） */
     function applyTabBarTheme(newTheme: 'light' | 'dark'): void {
       const isDark = newTheme === 'dark'
+      const scheme = COLOR_SCHEMES[colorScheme.value]
       uni.setTabBarStyle({
-        color: isDark ? '#8899aa' : '#999999',
-        selectedColor: isDark ? '#3d8aff' : '#2979FF',
-        backgroundColor: isDark ? '#1a1a2e' : '#ffffff',
+        color: isDark ? '#7888a0' : '#999999',
+        selectedColor: isDark ? scheme.tabBarSelectedDark : scheme.tabBarSelected,
+        backgroundColor: isDark ? '#0f0f1a' : '#ffffff',
         borderStyle: 'black',
       })
+    }
+
+    /** 切换主题色方案，持久化并触发 UI 更新 */
+    function setColorScheme(scheme: ColorScheme): void {
+      colorScheme.value = scheme
+      uni.setStorageSync('uni_supabase_color_scheme', scheme)
+      // 重新应用 TabBar（主题色变了）
+      applyTabBarTheme(theme.value)
+      // 触发 uview-plus 刷新
+      try {
+        uni.$emit('uThemeChange', { version: Date.now() })
+      } catch { /* 静默忽略 */ }
     }
 
     /** 显示全局加载 */
@@ -196,18 +271,21 @@ export const useAppStore = defineStore(
       isOnline,
       globalLoading,
       theme,
+      colorScheme,
+      pageClass,
       init,
       setTheme,
+      setColorScheme,
       showLoading,
       hideLoading,
     }
   },
   {
-    /** Pinia 持久化配置（只持久化 theme 字段，复用 libs/storage.ts 适配器） */
+    /** Pinia 持久化配置（复用 libs/storage.ts 适配器） */
     persist: {
       key: 'uni_supabase_app',
       storage: uniPiniaStorage,
-      pick: ['theme'],
+      pick: ['theme', 'colorScheme'],
     },
   },
 )

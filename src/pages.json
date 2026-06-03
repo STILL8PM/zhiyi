@@ -12,26 +12,26 @@
       "path": "pages/splash/index",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": ""
+        "navigationBarTitleText": "启动页"
       }
     },
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "首页",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "首页"
       }
     },
     {
       "path": "pages/auth/login/index",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "登录"
       }
     },
     {
       "path": "pages/auth/register/index",
       "style": {
-        "navigationBarTitleText": "注册"
+        "navigationBarTitleText": ""
       }
     },
     {
@@ -43,8 +43,19 @@
     {
       "path": "pages/user/index",
       "style": {
-        "navigationBarTitleText": "个人中心",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "个人中心"
+      }
+    },
+    {
+      "path": "pages/profile/edit/index",
+      "style": {
+        "navigationBarTitleText": "编辑资料"
+      }
+    },
+    {
+      "path": "pages/security/index",
+      "style": {
+        "navigationBarTitleText": "账号安全"
       }
     },
     {
@@ -65,6 +76,7 @@
   },
 
   "tabBar": {
+    "custom": true,
     "color": "#999999",
     "selectedColor": "#2979FF",
     "borderStyle": "black",

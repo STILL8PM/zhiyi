@@ -5,7 +5,7 @@
  */
 
 import { ref } from 'vue'
-import { uploadFile, getPublicUrl } from '@/api/upload'
+import { uploadFile, getPublicUrl, uploadAvatarViaEdgeFunction } from '@/api/upload'
 import type { BucketName } from '@/api/upload'
 
 export function useUpload() {
@@ -30,7 +30,22 @@ export function useUpload() {
           // H5：tempFiles[0] 是原生 File 对象 → 直接传给 uploadFile
           // 小程序/App：只有 tempFilePaths → 传 { path } 由 uploadFile 内部读取
           const fileBody = res.tempFiles?.[0] || { path: res.tempFilePaths[0] }
-          const { data, error } = await uploadFile(bucket, storagePath, fileBody)
+
+          let data: { url?: string; path?: string } | null = null
+          let error: { message?: string } | null = null
+
+          // avatars 桶走 Edge Function（service_role 绕过 RLS），其他桶走直传
+          if (bucket === 'avatars') {
+            const result = await uploadAvatarViaEdgeFunction(fileBody, fileName)
+            data = result.data
+            error = result.error
+          } else {
+            const result = await uploadFile(bucket, storagePath, fileBody)
+            if (result.data) {
+              data = { url: getPublicUrl(bucket, storagePath), path: result.data.path }
+            }
+            error = result.error
+          }
 
           uploading.value = false
           progress.value = 100
@@ -39,7 +54,8 @@ export function useUpload() {
             uni.showToast({ title: '上传失败，请重试', icon: 'none' })
             resolve(null)
           } else {
-            resolve(getPublicUrl(bucket, storagePath))
+            // Edge Function 返回完整 URL，直接使用；直传模式拼 URL
+            resolve(data?.url || null)
           }
         },
         fail: (err) => {

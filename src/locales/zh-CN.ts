@@ -36,6 +36,7 @@ export default {
     loginBtn: '登 录',
     registerLink: '注册账号',
     forgotPwdLink: '忘记密码？',
+    rememberPwd: '记住密码',
     oauthDivider: '其他登录方式',
     google: 'Google',
     wechat: '微信',
@@ -97,14 +98,32 @@ export default {
     logoutConfirmTitle: '提示',
     logoutConfirmContent: '确定要退出登录吗？',
     menu: {
-      profile: '个人资料',
+      editProfile: '编辑资料',
       security: '账号安全',
-      notification: '消息通知',
-      about: '关于应用',
+      about: '关于知忆',
     },
     placeholder: {
       notLoggedIn: '请先登录',
       goLogin: '去登录',
+    },
+  },
+
+  /** 编辑资料页 */
+  profile: {
+    pageTitle: '编辑资料',
+  },
+
+  /** 账号安全页 */
+  security: {
+    pageTitle: '账号安全',
+    sections: {
+      password: '密码管理',
+      phone: '手机绑定',
+      advanced: '高级安全',
+    },
+    items: {
+      logoutAll: '退出所有设备',
+      deleteAccount: '注销账户',
     },
   },
 
@@ -127,6 +146,7 @@ export default {
       notification: '通知开关',
       darkMode: '深色模式',
       language: '语言 / Language',
+      colorScheme: '主题色',
       version: '应用版本',
       terms: '用户协议',
       privacy: '隐私政策',
@@ -136,11 +156,23 @@ export default {
       bio: '介绍一下自己吧',
       phone: '请输入手机号',
     },
+    changePassword: {
+      title: '修改密码',
+      newPassword: '新密码',
+      confirmPassword: '确认新密码',
+      newPasswordPlaceholder: '请输入新密码（≥8位，含字母和数字）',
+      confirmPasswordPlaceholder: '请再次输入新密码',
+      success: '密码修改成功',
+      failed: '密码修改失败，请重试',
+      validation: {
+        weakPassword: '密码至少 8 位，含字母和数字',
+        mismatch: '两次密码输入不一致',
+      },
+    },
     toast: {
       notifyOn: '已开启通知',
       notifyOff: '已关闭通知',
       notImplemented: '功能待开发',
-      changePassword: '修改密码功能（待开发）',
       noTerms: '待添加',
       profileSaved: '资料已保存',
       profileSaveFailed: '保存失败，请重试',

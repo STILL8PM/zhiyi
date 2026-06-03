@@ -7,44 +7,44 @@
   国际化：所有文案通过 $t() 引用
 -->
 <template>
-  <view class="page-container">
-    <!-- ===== 背景装饰 ===== -->
-    <view class="bg-decor">
-      <view class="bg-circle bg-circle--1" />
-      <view class="bg-circle bg-circle--2" />
-    </view>
-
+  <view class="page-container" :class="[appStore.pageClass, { 'theme-dark': isDark }]">
     <!-- ===== 欢迎区 ===== -->
-    <view class="welcome-section" :class="{ 'anim-in': animStep >= 1 }">
+    <view class="welcome-section">
       <text class="welcome-title">{{ $t('home.greeting') }}</text>
-      <text class="welcome-subtitle">{{ $t('splash.appName') }}</text>
-      <text class="welcome-desc">{{ $t('home.description') }}</text>
     </view>
 
     <!-- ===== 功能卡片列表 ===== -->
     <view class="feature-list">
       <view
-        v-for="(item, index) in features"
+        v-for="item in features"
         :key="item.icon"
         class="feature-card"
-        :class="{ 'anim-in': animStep >= 2 + index }"
       >
         <text class="feature-icon">{{ item.icon }}</text>
         <text class="feature-title">{{ item.title }}</text>
         <text class="feature-desc">{{ item.desc }}</text>
       </view>
     </view>
+
+    <!-- 自定义底部导航栏 -->
+    <c-custom-tabbar />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
+import CCustomTabbar from '@/components/custom-tabbar/index.vue'
 
 const authStore = useAuthStore()
+const appStore = useAppStore()
 const { t } = useI18n()
+
+/** 当前页面是否处于深色模式（用于根元素 class 绑定，适配小程序端） */
+const isDark = computed(() => appStore.theme === 'dark')
 
 /** 功能卡片数据（跟随语言） */
 const features = computed(() => [
@@ -54,18 +54,6 @@ const features = computed(() => [
   { icon: '⚡', title: t('home.features.realtime.title'), desc: t('home.features.realtime.desc') },
 ])
 
-/** 入场动画步数：1=欢迎区 2~5=卡片依次 */
-const animStep = ref(0)
-
-/** ===== 入场动画序列 ===== */
-onMounted(() => {
-  const steps: [number, number][] = [[1, 80], [2, 200], [3, 320], [4, 440], [5, 560]]
-  steps.forEach(([step, delay]) => {
-    setTimeout(() => { animStep.value = step }, delay)
-  })
-})
-
-/** ===== 动态标题 ===== */
 onShow(() => {
   uni.setNavigationBarTitle({ title: t('home.pageTitle') })
 })
@@ -73,50 +61,17 @@ onShow(() => {
 
 <style lang="scss" scoped>
 
-/* ===== 容器 & 背景 ===== */
+/* ===== 容器 ===== */
 .page-container {
   min-height: 100vh;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 40rpx;
-  position: relative;
-  overflow: hidden;
-}
-
-.bg-decor {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 400rpx;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.bg-circle {
-  position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(41, 121, 255, 0.06) 0%, rgba(74, 144, 217, 0.02) 100%);
-
-  &--1 {
-    width: 400rpx; height: 400rpx;
-    top: -160rpx; right: -100rpx;
-    animation: bgFloat1 7s ease-in-out infinite;
-  }
-  &--2 {
-    width: 260rpx; height: 260rpx;
-    top: 60rpx; left: -80rpx;
-    animation: bgFloat2 9s ease-in-out infinite;
-  }
-}
-
-@keyframes bgFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-24rpx, 16rpx) scale(1.04); }
-}
-@keyframes bgFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(18rpx, -12rpx) scale(1.06); }
+  padding: 0 56rpx;
+  /* 给自定义 TabBar 留空间 */
+  padding-bottom: calc(120rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
 /* ===== 欢迎区 ===== */
@@ -126,10 +81,6 @@ onShow(() => {
   margin-bottom: 64rpx;
   position: relative;
   z-index: 1;
-  opacity: 0;
-  transform: translateY(-20rpx);
-
-  &.anim-in { animation: fadeInDown 0.55s ease forwards; }
 
   .welcome-title {
     display: block;
@@ -176,10 +127,6 @@ onShow(() => {
   align-items: center;
   box-shadow: var(--shadow-light);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
-  opacity: 0;
-  transform: scale(0.85) translateY(20rpx);
-
-  &.anim-in { animation: cardBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
   &:active { transform: scale(0.96); }
 
@@ -190,14 +137,4 @@ onShow(() => {
   .feature-desc { font-size: 22rpx; color: var(--text-secondary); text-align: center; line-height: 1.5; }
 }
 
-/* ===== 自定义 keyframes ===== */
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-20rpx); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes cardBounceIn {
-  0% { opacity: 0; transform: scale(0.85) translateY(20rpx); }
-  60% { opacity: 1; transform: scale(1.03) translateY(-4rpx); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
 </style>
