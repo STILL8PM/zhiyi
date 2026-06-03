@@ -1,7 +1,6 @@
 # Supabase 快速配置指南
 
 
-
 ## 1. 创建 Supabase 项目
 
 1. 访问 [supabase.com](https://supabase.com) 并注册/登录
